@@ -36,7 +36,7 @@
                   owner = "vinceliuice";
                   repo = "MacTahoe-icon-theme";
                   tag = version;
-                  hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+                  hash = "sha256-2Tj4PmecvVA3T5GmKBkYdkjnspIue/u0LiYPaNMXk10=";
                 };
 
                 nativeBuildInputs = [
