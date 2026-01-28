@@ -1,74 +1,81 @@
 {
-  lib,
-  stdenvNoCC,
-  fetchFromGitHub,
-  gtk3,
-  hicolor-icon-theme,
-  jdupes,
-  boldPanelIcons ? false,
-  themeVariants ? [],
-}: let
-  pname = "MacTahoe-icon-theme";
-in
-  lib.checkListOfEnum "${pname}: theme variants"
-  [
-    "default"
-    "purple"
-    "pink"
-    "red"
-    "orange"
-    "yellow"
-    "green"
-    "grey"
-    "all"
-  ]
-  themeVariants
-  stdenvNoCC.mkDerivation
-  rec {
-    inherit pname;
-    version = "2025-10-16";
+  description = "MacTahoe icon theme";
 
-    src = fetchFromGitHub {
-      owner = "vinceliuice";
-      repo = "MacTahoe-icon-theme";
-      tag = version;
-      hash = "sha256-oBKDvCVHEjN6JT0r0G+VndzijEWU9L8AvDhHQTmw2E4=";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs";
+
+  outputs = { self, nixpkgs }:
+    let
+      systems = [ "x86_64-linux" "aarch64-linux" ];
+      for_all = f:
+        nixpkgs.lib.genAttrs systems (system:
+          f (import nixpkgs { inherit system; }));
+    in {
+      packages = for_all (pkgs:
+        let
+          pname = "MacTahoe-icon-theme";
+        in {
+          default =
+            pkgs.lib.checkListOfEnum "${pname}: theme variants"
+              [
+                "default"
+                "purple"
+                "pink"
+                "red"
+                "orange"
+                "yellow"
+                "green"
+                "grey"
+                "all"
+              ]
+              []
+              pkgs.stdenvNoCC.mkDerivation rec {
+                inherit pname;
+                version = "2025-10-16";
+
+                src = pkgs.fetchFromGitHub {
+                  owner = "vinceliuice";
+                  repo = "MacTahoe-icon-theme";
+                  tag = version;
+                  hash = "sha256-oBKDvCVHEjN6JT0r0G+VndzijEWU9L8AvDhHQTmw2E4=";
+                };
+
+                nativeBuildInputs = [
+                  pkgs.gtk3
+                  pkgs.jdupes
+                ];
+
+                buildInputs = [
+                  pkgs.hicolor-icon-theme
+                ];
+
+                dontPatchELF = true;
+                dontRewriteSymlinks = true;
+                dontDropIconThemeCache = true;
+
+                postPatch = ''
+                  patchShebangs install.sh
+                '';
+
+                installPhase = ''
+                  runHook preInstall
+
+                  ./install.sh --dest $out/share/icons \
+                    --name MacTahoe \
+                    --theme default \
+
+                  jdupes --link-soft --recurse $out/share
+
+                  runHook postInstall
+                '';
+
+                meta = {
+                  description = "MacOS Tahoe icon theme for linux";
+                  homepage = "https://github.com/vinceliuice/MacTahoe-icon-theme";
+                  license = pkgs.lib.licenses.gpl3Plus;
+                  platforms = pkgs.lib.platforms.linux;
+                  maintainers = [ "TheWolfStreet" ];
+                };
+              };
+        });
     };
-
-    nativeBuildInputs = [
-      gtk3
-      jdupes
-    ];
-
-    buildInputs = [hicolor-icon-theme];
-
-    # These fixup steps are slow and unnecessary
-    dontPatchELF = true;
-    dontRewriteSymlinks = true;
-    dontDropIconThemeCache = true;
-
-    postPatch = ''
-      patchShebangs install.sh
-    '';
-
-    installPhase = ''
-      runHook preInstall
-
-      ./install.sh --dest $out/share/icons \
-        --name MacTahoe \
-        --theme ${toString themeVariants} \
-        ${lib.optionalString boldPanelIcons "--bold"} \
-
-      jdupes --link-soft --recurse $out/share
-
-      runHook postInstall
-    '';
-
-    meta = {
-      description = "MacOS Tahoe icon theme for linux ";
-      homepage = "https://github.com/vinceliuice/MacTahoe-icon-theme";
-      license = lib.licenses.gpl3Plus;
-      platforms = lib.platforms.linux;
-      maintainers = "TheWolfStreet";
-    };
-  }
+}
